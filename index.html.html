@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>拼圖博物館・翻卡紀錄</title>
+<style>
+  :root{
+    --curtain:#c8323f; --curtain-dk:#8e1d2a; --gold:#f2b632; --gold-lt:#ffe08a;
+    --wall:#e9a96a; --wall-dk:#c7804a; --wood:#7a4a2e; --wood-dk:#4e2c1a;
+    --cream:#fdf3e4; --card:#d9a07a; --card-dk:#b97c58; --card-line:#c48a63;
+    --ink:#3b2416; --blue:#2f6fd6; --green:#7cc35a; --green-dk:#4f9a36;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0}
+  :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+  body{
+    font-family:"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    color:var(--ink);
+    background:
+      repeating-linear-gradient(90deg, transparent 0 46px, rgba(0,0,0,.05) 46px 50px),
+      linear-gradient(var(--wall), #f1bb7c 60%, #f6c98d);
+    min-height:100vh; overflow-x:hidden;
+    image-rendering:pixelated;
+  }
+  /* curtains */
+  .curtain{position:fixed;top:0;bottom:0;width:9vw;max-width:70px;z-index:0;
+    background:repeating-linear-gradient(90deg,var(--curtain) 0 10px,var(--curtain-dk) 10px 14px,var(--curtain) 14px 22px);}
+  .curtain.l{left:0} .curtain.r{right:0}
+  .valance{position:relative;height:70px;z-index:1;
+    background:linear-gradient(#244a8a 0 18px, var(--curtain) 18px);
+    border-bottom:6px solid var(--gold);}
+  .valance::after{content:"";position:absolute;left:0;right:0;bottom:6px;height:10px;
+    background:radial-gradient(circle,#fff6c9 0 3px,transparent 4px) 0 0/34px 10px;}
+  .stage{position:relative;z-index:2;max-width:430px;margin:0 auto;padding:10px 14vw 40px;}
+  @media(min-width:520px){.stage{padding:10px 20px 40px}}
+
+  h1{margin:14px 0 4px;text-align:center;font-size:clamp(34px,10vw,46px);font-weight:900;letter-spacing:2px;
+    color:#ffe3e3;
+    text-shadow:
+      3px 0 0 #7a1622,-3px 0 0 #7a1622,0 3px 0 #7a1622,0 -3px 0 #7a1622,
+      3px 3px 0 #7a1622,-3px 3px 0 #7a1622,3px -3px 0 #7a1622,-3px -3px 0 #7a1622,
+      0 7px 0 #4a0d14;}
+  .plaque{margin:6px auto 14px;width:72%;padding:8px 0;text-align:center;color:#fff;
+    font-size:20px;font-weight:700;background:var(--wood);border-radius:18px 18px 4px 4px;
+    box-shadow:0 0 0 3px var(--wood-dk) inset;}
+
+  .frame{background:var(--cream);border:6px solid var(--wood);border-radius:6px;
+    box-shadow:0 0 0 4px var(--wood-dk),0 8px 0 4px rgba(78,44,26,.35);padding:14px 12px 16px;}
+  .frame h2{margin:0 0 12px;text-align:center;font-size:18px;font-weight:700}
+  .frame h2 b{color:var(--blue)}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .cell{aspect-ratio:1/1.02;border:none;padding:0;cursor:pointer;position:relative;
+    border-radius:4px;background:var(--card);
+    box-shadow:0 0 0 3px var(--card-dk),0 4px 0 3px var(--wood);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:inherit;color:var(--ink);transition:transform .08s;}
+  .cell:active{transform:translateY(2px)}
+  .cell:focus-visible{outline:3px solid var(--blue);outline-offset:4px}
+  .cell.covered::before{content:"";position:absolute;inset:7px;border:2px dashed transparent;
+    background:
+      linear-gradient(var(--card-line),var(--card-line)) 0 0/8px 2px no-repeat,
+      linear-gradient(var(--card-line),var(--card-line)) 0 0/2px 8px no-repeat,
+      linear-gradient(var(--card-line),var(--card-line)) 100% 0/8px 2px no-repeat,
+      linear-gradient(var(--card-line),var(--card-line)) 100% 0/2px 8px no-repeat,
+      linear-gradient(var(--card-line),var(--card-line)) 0 100%/8px 2px no-repeat,
+      linear-gradient(var(--card-line),var(--card-line)) 0 100%/2px 8px no-repeat,
+      linear-gradient(var(--card-line),var(--card-line)) 100% 100%/8px 2px no-repeat,
+      linear-gradient(var(--card-line),var(--card-line)) 100% 100%/2px 8px no-repeat;}
+  .cell svg{width:46%;height:auto}
+  .cell.open{background:#f1d9c2}
+  .cell .emo{font-size:clamp(26px,8vw,36px);line-height:1}
+  .cell .num{font-size:clamp(14px,4.2vw,18px);font-weight:700;margin-top:2px}
+  .cell.flip{animation:flip .25s ease}
+  @keyframes flip{0%{transform:scaleX(1)}50%{transform:scaleX(.05)}100%{transform:scaleX(1)}}
+
+  .tally{margin:16px 0 0;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;font-size:14px}
+  .tally span{background:#f1d9c2;border-radius:4px;padding:3px 8px;box-shadow:0 0 0 2px var(--card-dk)}
+  .tally:empty::after{content:"點一張牌，選擇它的內容";color:#a07a5c}
+
+  .btn{display:block;margin:16px auto 0;padding:10px 26px;border:none;border-radius:6px;font:700 17px/1 inherit;
+    font-family:inherit;color:#fff;cursor:pointer;background:#8a96b8;
+    box-shadow:0 0 0 3px #5d6688,0 5px 0 3px #454c66;}
+  .btn:active{transform:translateY(3px);box-shadow:0 0 0 3px #5d6688,0 2px 0 3px #454c66}
+  .btn:focus-visible{outline:3px solid var(--blue);outline-offset:4px}
+  .btn.armed{background:#d4515c;box-shadow:0 0 0 3px #9a2a35,0 5px 0 3px #6e1c25}
+  .total{margin:14px auto 0;width:max-content;padding:8px 18px;border-radius:8px;color:#fff;font-weight:700;font-size:16px;
+    background:var(--green);box-shadow:0 0 0 3px var(--green-dk),0 5px 0 3px #376e25}
+
+  /* picker sheet */
+  .veil{position:fixed;inset:0;background:rgba(40,20,10,.55);z-index:10;display:none;align-items:flex-end;justify-content:center}
+  .veil.show{display:flex}
+  .sheet{width:100%;max-width:460px;background:var(--cream);border-top:6px solid var(--wood);
+    box-shadow:0 -4px 0 0 var(--wood-dk);padding:16px 14px calc(18px + env(safe-area-inset-bottom));
+    animation:up .18s ease}
+  @keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+  .sheet h3{margin:0 0 12px;text-align:center;font-size:17px}
+  .opts{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .opt{border:none;border-radius:4px;background:#f1d9c2;box-shadow:0 0 0 2px var(--card-dk),0 3px 0 2px var(--wood);
+    padding:8px 0 6px;cursor:pointer;font-family:inherit;color:var(--ink);display:flex;flex-direction:column;align-items:center}
+  .opt .emo{font-size:26px;line-height:1.1}
+  .opt .num{font-size:13px;font-weight:700;min-height:16px}
+  .opt.sel{background:#ffe7a3;box-shadow:0 0 0 3px var(--gold),0 3px 0 3px #b07d14}
+  .opt.cover{background:var(--card)}
+  .opt.cover svg{width:26px;height:26px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="curtain l"></div><div class="curtain r"></div>
+<div class="valance"></div>
+
+<main class="stage">
+  <h1>拼圖博物館</h1>
+  <div class="plaque">翻卡紀錄</div>
+
+  <section class="frame">
+    <h2>已記錄 <b id="count">0</b> / 16 張</h2>
+    <div class="grid" id="grid"></div>
+    <div class="tally" id="tally"></div>
+    <div class="total" id="total" hidden></div>
+    <button class="btn" id="reset">全部蓋回</button>
+  </section>
+</main>
+
+<div class="veil" id="veil">
+  <div class="sheet" role="dialog" aria-labelledby="sheetTitle">
+    <h3 id="sheetTitle">第 1 張是什麼？</h3>
+    <div class="opts" id="opts"></div>
+  </div>
+</div>
+
+<script>
+const PAW = `<svg viewBox="0 0 16 14" shape-rendering="crispEdges" fill="#b97c58" aria-hidden="true">
+  <rect x="2" y="3" width="2" height="3"/><rect x="5" y="0" width="2" height="3"/>
+  <rect x="9" y="0" width="2" height="3"/><rect x="12" y="3" width="2" height="3"/>
+  <rect x="5" y="6" width="6" height="2"/><rect x="4" y="8" width="8" height="3"/>
+  <rect x="5" y="11" width="2" height="2"/><rect x="9" y="11" width="2" height="2"/><rect x="7" y="10" width="2" height="2"/></svg>`;
+
+const TYPES = [
+  {id:"gem",e:"💎"},{id:"fish",e:"🐟"},{id:"book",e:"📖"},
+  {id:"c55",e:"🤡",n:55},{id:"c65",e:"🤡",n:65},{id:"c75",e:"🤡",n:75},
+  {id:"c90",e:"🤡",n:90},{id:"c125",e:"🤡",n:125},{id:"c150",e:"🤡",n:150},
+  {id:"ticket",e:"🎟️"},{id:"puzzle",e:"🧩"},
+  {id:"green",e:"🟢"},{id:"red",e:"🔴"},{id:"blue",e:"🔵"}
+];
+const byId = Object.fromEntries(TYPES.map(t=>[t.id,t]));
+const KEY = "puzzle-museum-board";
+let board = Array(16).fill(null);
+let active = -1;
+
+const $ = s=>document.querySelector(s);
+const grid=$("#grid"), opts=$("#opts"), veil=$("#veil");
+
+function render(flipIdx){
+  grid.innerHTML="";
+  board.forEach((v,i)=>{
+    const b=document.createElement("button");
+    const t=v&&byId[v];
+    b.className="cell "+(t?"open":"covered")+(i===flipIdx?" flip":"");
+    b.setAttribute("aria-label",`第 ${i+1} 張：${t?(t.e+(t.n||"")):"未翻開"}`);
+    b.innerHTML = t ? `<span class="emo">${t.e}</span>${t.n?`<span class="num">${t.n}</span>`:""}` : PAW;
+    b.onclick=()=>openPicker(i);
+    grid.appendChild(b);
+  });
+  const opened=board.filter(Boolean);
+  $("#count").textContent=opened.length;
+  const counts={};
+  opened.forEach(id=>counts[id]=(counts[id]||0)+1);
+  $("#tally").innerHTML=TYPES.filter(t=>counts[t.id])
+    .map(t=>`<span>${t.e}${t.n||""} ×${counts[t.id]}</span>`).join("");
+  const sum=opened.reduce((s,id)=>s+(byId[id].n||0),0);
+  const tot=$("#total");
+  tot.hidden=!sum; tot.textContent=`🤡 合計 ${sum}`;
+}
+
+function openPicker(i){
+  active=i;
+  $("#sheetTitle").textContent=`第 ${i+1} 張是什麼？`;
+  opts.innerHTML="";
+  TYPES.forEach(t=>{
+    const o=document.createElement("button");
+    o.className="opt"+(board[i]===t.id?" sel":"");
+    o.innerHTML=`<span class="emo">${t.e}</span><span class="num">${t.n||""}</span>`;
+    o.onclick=()=>choose(t.id);
+    opts.appendChild(o);
+  });
+  const c=document.createElement("button");
+  c.className="opt cover"+(board[i]?"":" sel");
+  c.innerHTML=`${PAW}<span class="num">蓋回</span>`;
+  c.onclick=()=>choose(null);
+  opts.appendChild(c);
+  veil.classList.add("show");
+}
+function close(){veil.classList.remove("show");active=-1}
+function choose(id){
+  const i=active; board[i]=id; close(); render(i); save();
+}
+veil.addEventListener("click",e=>{if(e.target===veil)close()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")close()});
+let resetArmed=false, resetTimer=null;
+const resetBtn=$("#reset");
+function disarm(){resetArmed=false;clearTimeout(resetTimer);resetBtn.textContent="全部蓋回";resetBtn.classList.remove("armed");}
+resetBtn.onclick=()=>{
+  if(!resetArmed){
+    resetArmed=true;
+    resetBtn.textContent="再按一次確認";
+    resetBtn.classList.add("armed");
+    resetTimer=setTimeout(disarm,3000);
+    return;
+  }
+  disarm();
+  board=Array(16).fill(null);
+  render();
+  save();
+};
+
+function save(){
+  try{ localStorage.setItem(KEY,JSON.stringify(board)); }catch(e){}
+}
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw){
+      const a=JSON.parse(raw);
+      if(Array.isArray(a)&&a.length===16) board=a.map(v=>(v&&byId[v])?v:null);
+    }
+  }catch(e){}
+  render();
+}
+// 切出去或關閉前再保險存一次
+document.addEventListener("visibilitychange",()=>{if(document.hidden)save()});
+window.addEventListener("pagehide",save);
+load();
+</script>
+</body>
+</html>
